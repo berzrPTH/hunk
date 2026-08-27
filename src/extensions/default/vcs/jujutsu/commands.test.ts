@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildJjDiffArgs, runJjText } from "./commands";
+import { buildJjDiffArgs, formatJjCommandLabel, runJjText } from "./commands";
 import type { ExtensionVcsDiffInput as VcsDiffCommandInput } from "hunkdiff/extension";
 
 const tempDirs: string[] = [];
@@ -92,6 +92,35 @@ afterEach(() => {
 const jjTest = Bun.which("jj") ? test : test.skip;
 
 describe("jj command helpers", () => {
+  test("builds jj diff arguments for --from and --to revisions", () => {
+    expect(buildJjDiffArgs(diffInput({ from: "main" }))).toEqual([
+      "diff",
+      "--git",
+      "--from",
+      "main",
+    ]);
+    expect(buildJjDiffArgs(diffInput({ to: "@" }))).toEqual(["diff", "--git", "--to", "@"]);
+    expect(buildJjDiffArgs(diffInput({ from: "main", to: "@" }))).toEqual([
+      "diff",
+      "--git",
+      "--from",
+      "main",
+      "--to",
+      "@",
+    ]);
+    expect(
+      buildJjDiffArgs(diffInput({ from: "main", to: "@", pathspecs: ["src/app.ts"] })),
+    ).toEqual(["diff", "--git", "--from", "main", "--to", "@", "--", "src/app.ts"]);
+  });
+
+  test("formats command labels for --from and --to", () => {
+    expect(formatJjCommandLabel(diffInput({ from: "main" }))).toBe("hunk diff --from main");
+    expect(formatJjCommandLabel(diffInput({ to: "@" }))).toBe("hunk diff --to @");
+    expect(formatJjCommandLabel(diffInput({ from: "main", to: "@" }))).toBe(
+      "hunk diff --from main --to @",
+    );
+  });
+
   test("reports a friendly error when jj is not installed or not on PATH", () => {
     expect(() =>
       runJjText({
@@ -127,6 +156,21 @@ describe("jj command helpers", () => {
         cwd: dir,
       }),
     ).toThrow("`hunk diff missing_revision` could not resolve Jujutsu revset `missing_revision`.");
+  });
+
+  jjTest("reports a friendly error for invalid from and to revsets", () => {
+    const dir = createTempJjRepo("hunk-jj-invalid-from-to-");
+    const input = diffInput({ from: "missing_from", to: "missing_to" });
+
+    expect(() =>
+      runJjText({
+        input,
+        args: buildJjDiffArgs(input),
+        cwd: dir,
+      }),
+    ).toThrow(
+      "`hunk diff --from missing_from --to missing_to` could not resolve Jujutsu revset `missing_from or missing_to`.",
+    );
   });
 
   jjTest(

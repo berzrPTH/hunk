@@ -330,6 +330,33 @@ describe("GitVcsAdapter", () => {
     );
     expect(stashSignature).toContain("diff --git");
   });
+
+  test("rejects diffs specifying --from or --to revisions", async () => {
+    const repo = createTempRepo("hunk-git-adapter-from-to-");
+    const fromInput = {
+      kind: "vcs",
+      from: "HEAD~1",
+      staged: false,
+      options: {},
+    } satisfies ExtensionVcsDiffInput;
+    await expect(
+      GitVcsAdapter.operations["working-tree-diff"]!.load(fromInput, { cwd: repo }),
+    ).rejects.toThrow(
+      'Comparing arbitrary revisions with "--from" or "--to" is only supported in Jujutsu (jj) mode currently.',
+    );
+
+    const toInput = {
+      kind: "vcs",
+      to: "HEAD",
+      staged: false,
+      options: {},
+    } satisfies ExtensionVcsDiffInput;
+    await expect(
+      GitVcsAdapter.operations["working-tree-diff"]!.load(toInput, { cwd: repo }),
+    ).rejects.toThrow(
+      'Comparing arbitrary revisions with "--from" or "--to" is only supported in Jujutsu (jj) mode currently.',
+    );
+  });
 });
 
 describe("bundled Git adapter helpers", () => {

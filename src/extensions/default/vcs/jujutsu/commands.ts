@@ -27,7 +27,14 @@ function appendJjFilesets(args: string[], pathspecs?: string[]) {
 export function buildJjDiffArgs(input: ExtensionVcsDiffInput) {
   const args = ["diff", "--git"];
 
-  if (input.range) {
+  if (input.from !== undefined || input.to !== undefined) {
+    if (input.from !== undefined) {
+      args.push("--from", input.from);
+    }
+    if (input.to !== undefined) {
+      args.push("--to", input.to);
+    }
+  } else if (input.range) {
     args.push("-r", input.range);
   }
 
@@ -47,6 +54,15 @@ export function formatJjCommandLabel(input: JjBackedInput) {
   if (input.kind === "vcs") {
     if (input.staged) {
       return "hunk diff --staged";
+    }
+
+    if (input.from !== undefined || input.to !== undefined) {
+      const parts = [
+        "hunk diff",
+        input.from !== undefined ? `--from ${input.from}` : undefined,
+        input.to !== undefined ? `--to ${input.to}` : undefined,
+      ].filter(Boolean);
+      return parts.join(" ");
     }
 
     return input.range ? `hunk diff ${input.range}` : "hunk diff";
@@ -111,7 +127,20 @@ export function createJjStagedError(input: ExtensionVcsDiffInput) {
 }
 
 function createInvalidRevsetError(input: JjBackedInput) {
-  const revset = input.kind === "vcs" ? input.range : (input.ref ?? "@");
+  let revset: string | undefined;
+  if (input.kind === "vcs") {
+    if (input.from !== undefined && input.to !== undefined) {
+      revset = `${input.from} or ${input.to}`;
+    } else if (input.from !== undefined) {
+      revset = input.from;
+    } else if (input.to !== undefined) {
+      revset = input.to;
+    } else {
+      revset = input.range;
+    }
+  } else {
+    revset = input.ref ?? "@";
+  }
   return new HunkExtensionUserError(
     `\`${formatJjCommandLabel(input)}\` could not resolve Jujutsu revset \`${revset}\`.`,
     { suggestions: ["Check the revset and try again."] },

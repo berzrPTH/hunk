@@ -131,6 +131,34 @@ describe("JjVcsAdapter", () => {
   );
 
   jjTest(
+    "loads diff with --from and --to revisions",
+    async () => {
+      const repo = createTempJjRepo("hunk-jj-adapter-from-to-");
+      writeFileSync(join(repo, "file.txt"), "one\n");
+      jj(repo, "commit", "-m", "first");
+      writeFileSync(join(repo, "file.txt"), "two\n");
+      jj(repo, "commit", "-m", "second");
+      writeFileSync(join(repo, "file.txt"), "three\n");
+
+      const diffInput = {
+        kind: "vcs",
+        from: "@-",
+        to: "@",
+        staged: false,
+        options: {},
+      } satisfies ExtensionVcsDiffInput;
+      const diffResult = await JjVcsAdapter.operations["working-tree-diff"]!.load(diffInput, {
+        cwd: repo,
+      });
+
+      expect(diffResult.title).toContain("--from @- --to @");
+      expect(diffResult.patchText).toContain("diff --git a/file.txt b/file.txt");
+      expect(diffResult.patchText).toContain("+three");
+    },
+    JjAdapterIntegrationTestTimeoutMs,
+  );
+
+  jjTest(
     "rejects staged and stash operations",
     async () => {
       const repo = createTempJjRepo("hunk-jj-adapter-unsupported-");

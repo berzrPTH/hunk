@@ -184,6 +184,32 @@ describe("SaplingVcsAdapter without the sl binary", () => {
     ).rejects.toThrow("Sapling has no staging area");
   });
 
+  test("rejects diffs specifying --from or --to revisions before spawning sl", async () => {
+    const fromInput = {
+      kind: "vcs",
+      from: ".^",
+      staged: false,
+      options: {},
+    } satisfies ExtensionVcsDiffInput;
+    await expect(
+      SaplingVcsAdapter.operations["working-tree-diff"]!.load(fromInput, { cwd: tmpdir() }),
+    ).rejects.toThrow(
+      'Comparing arbitrary revisions with "--from" or "--to" is only supported in Jujutsu (jj) mode currently.',
+    );
+
+    const toInput = {
+      kind: "vcs",
+      to: ".",
+      staged: false,
+      options: {},
+    } satisfies ExtensionVcsDiffInput;
+    await expect(
+      SaplingVcsAdapter.operations["working-tree-diff"]!.load(toInput, { cwd: tmpdir() }),
+    ).rejects.toThrow(
+      'Comparing arbitrary revisions with "--from" or "--to" is only supported in Jujutsu (jj) mode currently.',
+    );
+  });
+
   test("does not expose a stash-show operation", () => {
     expect(slOperations["stash-show"]).toBeUndefined();
   });

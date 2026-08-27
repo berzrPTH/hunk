@@ -124,6 +124,8 @@ export const WATCH_OPTION = {
 const DIFF_OPTIONS = [
   { flag: "--staged", description: "show staged changes instead of the working tree" },
   { flag: "--cached", description: "alias for --staged" },
+  { flag: "--from <rev>", description: "compare from this revision" },
+  { flag: "--to <rev>", description: "compare to this revision" },
   AUXILIARY_AGENT_OPTIONS.excludeUntracked,
   {
     flag: `--no-${AUXILIARY_AGENT_OPTIONS.excludeUntracked.flag.slice(2)}`,
@@ -739,6 +741,21 @@ async function parseDiffCommand(tokens: string[], argv: string[]): Promise<Parse
   const staged = Boolean(parsedOptions.staged) || Boolean(parsedOptions.cached);
   const options = buildCommonOptions(parsedOptions, argv);
   const normalizedPathspecs = pathspecs.length > 0 ? pathspecs : undefined;
+
+  const from = parsedOptions.from as string | undefined;
+  const to = parsedOptions.to as string | undefined;
+
+  if (from !== undefined || to !== undefined) {
+    const combinedPathspecs = [...parsedTargets, ...pathspecs];
+    return {
+      kind: "vcs",
+      from,
+      to,
+      staged,
+      pathspecs: combinedPathspecs.length > 0 ? combinedPathspecs : undefined,
+      options,
+    };
+  }
 
   if (parsedTargets.length === 0) {
     return {

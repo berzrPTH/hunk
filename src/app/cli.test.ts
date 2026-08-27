@@ -391,6 +391,64 @@ describe("parseCli", () => {
     });
   });
 
+  test("parses diff with --from and --to revisions", async () => {
+    const fromOnly = await parseCli(["bun", "hunk", "diff", "--from", "main"]);
+    expect(fromOnly).toMatchObject({
+      kind: "vcs",
+      from: "main",
+      staged: false,
+    });
+
+    const toOnly = await parseCli(["bun", "hunk", "diff", "--to", "@"]);
+    expect(toOnly).toMatchObject({
+      kind: "vcs",
+      to: "@",
+      staged: false,
+    });
+
+    const both = await parseCli(["bun", "hunk", "diff", "--from", "main", "--to", "@"]);
+    expect(both).toMatchObject({
+      kind: "vcs",
+      from: "main",
+      to: "@",
+      staged: false,
+    });
+
+    const withPathspecs = await parseCli([
+      "bun",
+      "hunk",
+      "diff",
+      "--from",
+      "main",
+      "--to",
+      "@",
+      "--",
+      "src/app.ts",
+    ]);
+    expect(withPathspecs).toMatchObject({
+      kind: "vcs",
+      from: "main",
+      to: "@",
+      staged: false,
+      pathspecs: ["src/app.ts"],
+    });
+
+    const withPositionalPathspecs = await parseCli([
+      "bun",
+      "hunk",
+      "diff",
+      "--from",
+      "main",
+      "src/app.ts",
+    ]);
+    expect(withPositionalPathspecs).toMatchObject({
+      kind: "vcs",
+      from: "main",
+      staged: false,
+      pathspecs: ["src/app.ts"],
+    });
+  });
+
   test("parses show mode with optional ref and pathspecs", async () => {
     const parsed = await parseCli(["bun", "hunk", "show", "HEAD~1", "--", "src/app.ts"]);
 

@@ -693,6 +693,8 @@ export interface ExtensionVcsReviewOptions {
 export interface ExtensionVcsDiffInput {
   kind: "vcs";
   range?: string;
+  from?: string;
+  to?: string;
   staged: boolean;
   pathspecs?: string[];
   options: ExtensionVcsReviewOptions;

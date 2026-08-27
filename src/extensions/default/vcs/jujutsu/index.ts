@@ -58,10 +58,16 @@ export const JjVcsAdapter = {
         }
         const repoRoot = resolveJjRepoRoot(input, { cwd });
         const repoName = basename(repoRoot);
+        const title =
+          input.from !== undefined || input.to !== undefined
+            ? `${repoName} ${[input.from && `--from ${input.from}`, input.to && `--to ${input.to}`].filter(Boolean).join(" ")}`
+            : input.range
+              ? `${repoName} ${input.range}`
+              : `${repoName} working copy`;
         return {
           repoRoot,
           sourceLabel: repoRoot,
-          title: input.range ? `${repoName} ${input.range}` : `${repoName} working copy`,
+          title,
           patchText: runJjText({ input, args: buildJjDiffArgs(input), cwd }),
         };
       },

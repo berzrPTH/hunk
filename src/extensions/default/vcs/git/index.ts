@@ -22,6 +22,7 @@ import {
 import { gitEndpointSourceSpec, readGitFileSource } from "./source";
 import {
   HUNK_VCS_DETECTION_BASELINE_PRIORITY,
+  HunkExtensionUserError,
   type ExtensionVcsAdapter,
   type ExtensionVcsDiffInput,
   type ExtensionVcsDirectoryTreeWatchTarget,
@@ -281,6 +282,12 @@ export function createGitVcsAdapter({
     operations: {
       "working-tree-diff": {
         async load(input, { cwd }) {
+          if (input.from !== undefined || input.to !== undefined) {
+            throw new HunkExtensionUserError(
+              `Comparing arbitrary revisions with "--from" or "--to" is only supported in Jujutsu (jj) mode currently.`,
+              { suggestions: ["Remove --from or --to, or switch to Jujutsu mode."] },
+            );
+          }
           const repoRoot = resolveGitRepoRoot(input, { cwd, gitExecutable });
           const repoName = basename(repoRoot);
           const title = input.staged
